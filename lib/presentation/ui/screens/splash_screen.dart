@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
-import '../widgets/app_logo_widget.dart';
-import 'main_bottom_nav_screen.dart';
+import '../../state_holders/auth_controller.dart';
+import '../utility/image_assets.dart';
+import './auth/email_verification_screen.dart';
+import './main_bottom_nav_bar.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,34 +18,44 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
-    moveToNextScreen();
     super.initState();
+    _navigateToNextScreen();
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Spacer(),
-            AppLogoWidget(),
-            CircularProgressIndicator(),
-            Spacer(),
-            Text(
-              'version 1.0.0',
-              style: TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
+    return Scaffold(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          const Spacer(),
+          Center(
+            child: SvgPicture.asset(
+              ImageAssets.appLogo,
+              width: 100,
+            ),
+          ),
+          const Spacer(),
+          const CircularProgressIndicator.adaptive(),
+          const SizedBox(height: 10),
+          const Text('Version 1.0.0'),
+          const SizedBox(height: 18),
+        ],
       ),
     );
   }
 
-  void moveToNextScreen() async {
-    await Future.delayed(const Duration(seconds: 2));
-
-    Get.offAll(const MainBottomNavScreen());
+  Future<void> _navigateToNextScreen() async {
+    await AuthController.readAccessToken();
+    Future.delayed(
+      const Duration(seconds: 3),
+    ).then((value) {
+      Get.offAll(() => const MainBottomNavBarScreen());
+      // Get.offAll(
+      //   () => AuthController.isLoggedIn
+      //       ? const MainButtomNavBarScreen()
+      //       : const EmailVerificationScreen(),
+      // );
+    });
   }
 }

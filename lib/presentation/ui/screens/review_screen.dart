@@ -1,14 +1,16 @@
-import 'package:awesome_flutter_extensions/awesome_flutter_extensions.dart';
-import 'package:crafty_bay/presentation/ui/screens/create_review_screen.dart';
-import 'package:crafty_bay/presentation/ui/utils/app_colors.dart';
-import 'package:crafty_bay/presentation/ui/utils/extentions.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'dart:developer';
 
-import '../../state_holders/bottom_nav_bar_controller.dart';
+import 'package:flutter/material.dart';
+
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
+import '../../state_holders/review_controller.dart';
+import './create_review_screen.dart';
 
 class ReviewScreen extends StatefulWidget {
-  const ReviewScreen({super.key});
+  final int productId;
+  const ReviewScreen({super.key, required this.productId});
 
   @override
   State<ReviewScreen> createState() => _ReviewScreenState();
@@ -16,79 +18,139 @@ class ReviewScreen extends StatefulWidget {
 
 class _ReviewScreenState extends State<ReviewScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      log(widget.productId.toString());
+      Get.find<ReviewController>().getReviews(widget.productId);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(
-          onPressed: Get.find<BottomNavBarController>().backToHome,
+        backgroundColor: Colors.white,
+        elevation: 2,
+        leading: const BackButton(
+          color: Colors.black54,
         ),
-        title: Text('Review'),
+        title: const Text(
+          'Reviews',
+          style: TextStyle(
+            color: Colors.black54,
+          ),
+        ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: ListView.builder(itemBuilder: (context, index) {
-            return Padding(
-              padding: 8.paddingHorizontal(),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Column(
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: Colors.black12,
-                                  child: Icon(Icons.person_2_outlined)),
-                              7.sizeBoxFromWidth,
-                              Text(
-                                'Rabbil Hasan',
-                                style: context.textStyles.titleMedium,
-                              )
-                            ],
-                          ),
-                          8.sizeBoxFromHeight,
-                          Text(
-                              'dadssgsafsdjafhsda hfgha sfhasdg fjhadg hsdgf hagf hgdshfghsdgfhsdagghghgf jhafhagshasgdf hashfashd fagdjhasgdhsadgashgasjd,sdasgdhasgdhgashdags jh adhg ')
-                        ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await Get.find<ReviewController>().getReviews(widget.productId);
+        },
+        child: GetBuilder<ReviewController>(
+          builder: (reviewController) {
+            if (reviewController.getReviewIsInProgress) {
+              return const Center(child: CircularProgressIndicator.adaptive());
+            } else if (reviewController.reviewModel.data?.isEmpty ?? true) {
+              return Center(
+                child: Text(
+                  'No reviews.',
+                  style: theme.textTheme.displaySmall?.copyWith(fontSize: 20),
+                ),
+              );
+            }
+            return Column(
+              children: <Widget>[
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: reviewController.reviewModel.data?.length ?? 0,
+                    separatorBuilder: (cntxt, index) => const Divider(),
+                    itemBuilder: (cntxt, index) {
+                      return review(
+                        reviewController
+                                .reviewModel.data?[index].profile?.cusName ??
+                            'Unknown',
+                        reviewController.reviewModel.data?[index].description ??
+                            '..',
+                        reviewController.reviewModel.data?[index].rating ??
+                            '0.0',
+                        reviewController.reviewModel.data![index].updatedAt!,
+                      );
+                    },
+                  ),
+                ),
+                Ink(
+                  height: 60,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withOpacity(0.1),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20.0),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Text(
+                        'Reviews (${reviewController.reviewModel.data?.length ?? 0})',
+                      ),
+                      FloatingActionButton(
+                        backgroundColor: theme.primaryColor,
+                        onPressed: () {
+                          Get.to(() => CreateReviewScreen(
+                                productId: widget.productId,
+                              ))?.then((value) {
+                            if (value == true) {
+                              reviewController.getReviews(widget.productId);
+                            }
+                          });
+                        },
+                        child: const Icon(Icons.add),
                       )
                     ],
                   ),
                 ),
-              ),
+              ],
             );
-          })),
-          Container(
-            decoration: BoxDecoration(
-                color: AppColors.themeColor.withOpacity(.2),
-                shape: BoxShape.rectangle,
-                borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(30),
-                    topLeft: Radius.circular(30))),
-            height: 80,
-            width: double.infinity,
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Text(
-                'Reviews (1000)',
-                style: context.textStyles.titleMedium,
-              ),
-            ),
-          )
+          },
+        ),
+      ),
+    );
+  }
+
+  ListTile review(String name, String review, String reviewRating,
+      String reviewUpdatedTime) {
+    return ListTile(
+      leading: const CircleAvatar(child: Icon(Icons.person)),
+      title: Text(name),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const SizedBox(height: 5),
+          Text(
+            review,
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+          ),
+          const SizedBox(height: 5),
+          Text(DateFormat.yMd().format(DateTime.parse(reviewUpdatedTime))),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.themeColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50.0),
-        ),
-        onPressed: () {
-          Get.to(CreateReviewScreen());
-        },
-        child: Icon(Icons.add),
+      subtitleTextStyle: const TextStyle(
+        fontSize: 14,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(reviewRating),
+          const SizedBox(width: 10),
+          Icon(reviewRating == '5' ? Icons.star : Icons.star_half,
+              color: Colors.yellow),
+        ],
       ),
     );
   }

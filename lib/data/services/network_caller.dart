@@ -1,59 +1,90 @@
 import 'dart:convert';
+import 'dart:developer';
 
-import 'package:crafty_bay/data/services/network_response.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 
+import '../../app.dart';
+import '../../presentation/state_holders/auth_controller.dart';
+import '../../presentation/ui/screens/auth/email_verification_screen.dart';
+import '../models/network_response.dart';
+
 class NetworkCaller {
-  static NetworkCaller? _instance;
-  NetworkCaller._();
-  factory NetworkCaller.getInstance() {
-    _instance ??= NetworkCaller._();
-    return _instance!;
-  }
-  Future<NetworkResponse> getRequest({required String url}) async {
+  Future<NetworkResponse> getRequest(
+    String url, {
+    bool loginRequired = false,
+    String tempToken = '',
+  }) async {
+    final String token = AuthController.accessToken ?? tempToken;
     try {
-      final Uri uri = Uri.parse(url);
-      Response response = await get(uri, headers: {'token': ""});
-      if (response.statusCode == 200) {
-        final decodedBody = jsonDecode(response.body);
+      log(token);
+      Response response = await get(
+        Uri.parse(url),
+        headers: {
+          'token': token,
+        },
+      );
+      log(response.statusCode.toString());
+
+      if (response.statusCode == 200 &&
+          jsonDecode(response.body)['msg'] == 'success') {
         return NetworkResponse(
-            isSuccess: true,
-            statusCode: response.statusCode,
-            responseData: decodedBody);
+            true, response.statusCode, jsonDecode(response.body));
+      } else if (response.statusCode == 401) {
+        if (loginRequired) {
+          gotoLogin();
+        }
       } else {
-        return NetworkResponse(
-          isSuccess: false,
-          statusCode: response.statusCode,
-        );
+        return NetworkResponse(false, response.statusCode, null);
       }
     } catch (e) {
-      return NetworkResponse(
-          isSuccess: false, statusCode: -1, errorMessage: e.toString());
+      log(e.toString());
     }
+    return NetworkResponse(false, -1, null);
   }
 
   Future<NetworkResponse> postRequest(
-      {required String url, Map<String, dynamic>? body}) async {
+    String url,
+    Map<String, dynamic> body, {
+    bool loginRequired = false,
+    String tempToken = '',
+  }) async {
     try {
-      final Uri uri = Uri.parse(url);
-      Response response = await post(uri,
-          headers: {'token': "", 'content-type': 'application/json'},
-          body: jsonEncode(body));
+      Response response = await post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'token': AuthController.accessToken ?? tempToken,
+        },
+        body: jsonEncode(body),
+      );
+      log(response.statusCode.toString());
+      log(response.body);
       if (response.statusCode == 200) {
-        final decodedBody = jsonDecode(response.body);
         return NetworkResponse(
-            isSuccess: true,
-            statusCode: response.statusCode,
-            responseData: decodedBody);
-      } else {
-        return NetworkResponse(
-          isSuccess: false,
-          statusCode: response.statusCode,
+          true,
+          response.statusCode,
+          jsonDecode(response.body),
         );
+      } else if (response.statusCode == 401) {
+        if (loginRequired == true) {
+          gotoLogin();
+        }
+      } else {
+        return NetworkResponse(false, response.statusCode, null);
       }
     } catch (e) {
-      return NetworkResponse(
-          isSuccess: false, statusCode: -1, errorMessage: e.toString());
+      log(e.toString());
     }
+    return NetworkResponse(false, -1, null);
+  }
+
+  Future<void> gotoLogin() async {
+    await AuthController.clearUserInfo();
+    Navigator.pushAndRemoveUntil(
+        CraftyBay.globalKey.currentContext!,
+        MaterialPageRoute(
+            builder: (context) => const EmailVerificationScreen()),
+        (route) => false);
   }
 }

@@ -1,32 +1,70 @@
-import 'package:crafty_bay/presentation/state_holders/bottom_nav_bar_controller.dart';
-import 'package:crafty_bay/presentation/state_holders/category_list_controller.dart';
-import 'package:crafty_bay/presentation/ui/widgets/category_card.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../state_holders/category_controller.dart';
+import '../../state_holders/main_bottom_nav_controller.dart';
+import '../widgets/category_item.dart';
+import './product_list_screen.dart';
 
 class CategoryListScreen extends StatelessWidget {
   const CategoryListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final categoryListController = Get.find<CategoryListController>();
-    return Scaffold(
-      appBar: AppBar(
-        leading: BackButton(
-          onPressed: Get.find<BottomNavBarController>().backToHome,
+    final ThemeData theme = Theme.of(context);
+    return WillPopScope(
+      onWillPop: () async {
+        Get.find<MainBottomNavController>().backToHomeScreen();
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 2,
+          leading: IconButton(
+            onPressed: () {
+              Get.find<MainBottomNavController>().backToHomeScreen();
+            },
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.black54,
+            ),
+          ),
+          title: const Text(
+            'Categories',
+            style: TextStyle(color: Colors.black54),
+          ),
         ),
-        title: const Text('Categories'),
-      ),
-      body: GridView.builder(
-        itemCount: categoryListController.categoryList.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          childAspectRatio: .75,
+        body: GetBuilder<CategoryController>(
+          builder: (categoryController) {
+            return GridView.builder(
+              padding: const EdgeInsets.all(5.0),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+              ),
+              itemCount: categoryController.categoryModel.data?.length ?? 0,
+              itemBuilder: (cntxt, index) {
+                return FittedBox(
+                  child: CategoryItem(
+                    category: categoryController.categoryModel.data![index],
+                    theme: theme,
+                    onTap: () {
+                      Get.to(
+                        () => ProductListScreen(
+                          categoryTitle: categoryController
+                              .categoryModel.data![index].categoryName!,
+                          categoryId:
+                              categoryController.categoryModel.data![index].id!,
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          },
         ),
-        itemBuilder: (_, index) {
-          return CategoryCard(
-              category: categoryListController.categoryList[index]);
-        },
       ),
     );
   }

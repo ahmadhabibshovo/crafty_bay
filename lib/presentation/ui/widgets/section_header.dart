@@ -1,24 +1,38 @@
-import 'package:awesome_flutter_extensions/awesome_flutter_extensions.dart';
 import 'package:flutter/material.dart';
 
 class SectionHeader extends StatelessWidget {
+  final ThemeData theme;
+  final String title;
+  final VoidCallback onTap;
   const SectionHeader({
     super.key,
+    required this.theme,
     required this.title,
     required this.onTap,
   });
-  final String title;
-  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
+      children: <Widget>[
         Text(
           title,
-          style: context.textStyles.bodyLarge,
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        TextButton(onPressed: onTap, child: Text('See all'))
+        TextButton(
+          style: TextButton.styleFrom(
+            textStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          onPressed: onTap,
+          child: const Text('See All'),
+        ),
       ],
     );
   }

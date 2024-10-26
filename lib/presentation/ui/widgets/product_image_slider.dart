@@ -1,64 +1,80 @@
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 
+import 'package:carousel_slider/carousel_slider.dart';
+
 class ProductImageSlider extends StatefulWidget {
-  const ProductImageSlider({super.key});
+  final List<String> images;
+  const ProductImageSlider({super.key, required this.images});
 
   @override
-  _ProductImageSliderState createState() => _ProductImageSliderState();
+  State<ProductImageSlider> createState() => _ProductImageSliderState();
 }
 
 class _ProductImageSliderState extends State<ProductImageSlider> {
-  int _currentIndex = 0;
-  final List<String> imgList = [
-    "https://ecommerce-api.codesilicon.com/images/product1.jpeg",
-    "https://ecommerce-api.codesilicon.com/images/product1.jpeg",
-    "https://ecommerce-api.codesilicon.com/images/product1.jpeg",
-    "https://ecommerce-api.codesilicon.com/images/product1.jpeg",
-    "https://ecommerce-api.codesilicon.com/images/product1.jpeg",
-  ];
+  final ValueNotifier<int> selectedSlider = ValueNotifier(0);
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Stack(
-      children: [
+      children: <Widget>[
         CarouselSlider(
-          items: imgList
-              .map((item) => Image.network(item,
-                  fit: BoxFit.cover, width: double.infinity))
-              .toList(),
           options: CarouselOptions(
-            viewportFraction: 1,
+            height: 320.0,
             autoPlay: true,
-            enlargeCenterPage: true,
-            aspectRatio: 2.0,
-            onPageChanged: (index, reason) {
-              setState(() {
-                print(index);
-                _currentIndex = index;
-              });
+            viewportFraction: 1,
+            pauseAutoPlayOnTouch: true,
+            onPageChanged:
+                (int index, CarouselPageChangedReason pageChangedReason) {
+              selectedSlider.value = index;
+            },
+          ),
+          items: widget.images.map<Builder>(
+            (imageUrl) {
+              return Builder(
+                builder: (BuildContext context) {
+                  return Container(
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      image: DecorationImage(
+                        image: NetworkImage(imageUrl),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                  );
+                },
+              );
+            },
+          ).toList(),
+        ),
+        Positioned(
+          bottom: 10,
+          left: 0,
+          right: 0,
+          child: ValueListenableBuilder(
+            valueListenable: selectedSlider,
+            builder: (context, index, child) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  ...List<Container>.generate(
+                    widget.images.length,
+                    (i) => Container(
+                      width: 12,
+                      height: 12,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: i == index ? theme.primaryColor : Colors.white,
+                      ),
+                    ),
+                  )
+                ],
+              );
             },
           ),
         ),
-        Positioned(
-          bottom: 8,
-          left: 0,
-          right: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(imgList.length, (i) {
-              return Container(
-                width: 12.0,
-                height: 12.0,
-                margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 2.0),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _currentIndex == i ? Colors.blueAccent : Colors.white,
-                ),
-              );
-            }),
-          ),
-        )
       ],
     );
   }
